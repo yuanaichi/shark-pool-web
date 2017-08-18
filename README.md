@@ -1,5 +1,5 @@
-# GaoPool
-the Gao pool is a bitcoineum mining pool
+# Shark pool
+the Shark pool is a bitcoineum mining pool
 
 ## dev
 

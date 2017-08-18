@@ -113,6 +113,10 @@ header .el-menu-item.is-active {
   font-weight: 700;
 }
 
+.el-menu--horizontal .el-menu-item a {
+  display: inline-block;
+}
+
 .main-cnt {
     margin-top: -80px;
     padding: 50px 0 100px;
@@ -148,117 +152,23 @@ header .el-menu-item.is-active {
     line-height: 1.5em;
 }
 
-
-
-.progress{
-    height: 30px;
-    line-height: 35px;
-    background: #809495;
-    box-shadow: none;
-    padding: 6px;
-    margin-top:20px;
-    overflow: visible;
-    border-radius:10px;
-}
-.progress:after{
-    content: "";
-    display: block;
-    border-top: 4px dashed #fff;
-    margin-top:14px;
-}
-.progressbar-title{
-    color:#d8dedc;
-    font-size:15px;
-    margin:5px 0;
-    font-weight: bold;
-}
-
-.progress-bar {
-    float: left;
-    width: 0px;
-    height: 100%;
-    font-size: 12px;
-    line-height: 20px;
-    color: rgb(255, 255, 255);
+.pool-box {
+    border-radius: 4px;
+    padding: 20px;
+    box-sizing: border-box;
+    color: #fff;
+    font-size: 14px;
     text-align: center;
-    background-color: rgb(51, 122, 183);
-    box-shadow: rgba(0, 0, 0, 0.15) 0px -1px 0px inset;
-    transition: width 0.6s ease;
 }
 
-
-.progress .progress-bar{
-    position: relative;
-    border-radius: 10px 0 0 10px;
-    animation: animate-positive 2s;
-}
-.progress .progress-bar span.percent {
-    position: absolute;
-    top: -50px;
-    right: -41px;
-    color: #fff;
-    display: block;
-    font-size: 17px;
-    padding: 5px 7px;
-    background: #333;
-    border-radius: 5px;
-    width: 90px;
+.pool-box .value {
+  font-weight: 700;
+  font-size: 25px;
+  line-height: 32px;
 }
 
-.progress .progress-bar span.mined {
-    color: black;
-    line-height: 29px;
-    font-size: 17px;
-    font-weight: 700;
-}
-
-.progress .progress-bar span.claimed {
-    display: inline-block;
-    float: left;
-    height: 100%;
-    line-height: 29px;
-    font-size: 17px;
-    font-weight: 700;
-    border-radius: 10px 0 0 10px;
-}
-
-
-.progress .progress-bar span.attempt {
-    position: absolute;
-    top: 50px;
-    right: -53px;
-    color: #fff;
-    display: block;
-    font-size: 17px;
-    padding: 5px 7px;
-    background: #333;
-    border-radius: 5px;
-    width: 100px;
-}
-
-.progress .progress-bar span.attempt:after{
-    content: "";
-    position: absolute;
-    top: -14px;
-    left: 45px;
-    border: 7px solid transparent;
-    border-bottom: 7px solid #333;
-}
-
-.progress .progress-bar span.percent:before{
-    content: "";
-    position: absolute;
-    bottom: -14px;
-    left: 46px;
-    border: 7px solid transparent;
-    border-top: 7px solid #333;
-}
-
-@-webkit-keyframes animate-positive {
-    0% { width: 0%;}
-}
-@keyframes animate-positive {
-    0% { width:0%; }
+.pool-box .title {
+  line-height: 28px;
 }
 
 .gas-price-number {

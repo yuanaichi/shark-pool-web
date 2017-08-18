@@ -3,10 +3,15 @@ import Help from './views/Help.vue'
 
 var router = [
 	{
-		name: 'index',
-		path: '/',
+		name: 'pool',
+		path: '/pool/:pool',
     component: Index,
 		title: 'Bitcoineum Mining Pool',
+  },
+	{
+		name: 'index',
+		path: '/',
+    redirect: {name: 'pool', params: {pool: 'sharkpool1'}}
   },
 	{
 		name: 'help',

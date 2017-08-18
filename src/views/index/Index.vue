@@ -4,38 +4,50 @@
     <div class="main-cnt">
       <div class="page-container">
         <el-alert
-        title="请注意当前为测试版本，不要充值太多ether，有问题到群里反馈。"
+        title="请注意当前为测试版本，有问题到群里反馈。"
         type="warning"
         show-icon>
         </el-alert>
+        <h3>{{poolName}}</h3>
+
           <p>
             合约地址
             <el-tag type="gray">
-              <a href="https://etherscan.io/address/0xB56EE79aa82c7b3509c50b1A03Cd11D6BF15Df53" target="_blank">0xB56EE79aa82c7b3509c50b1A03Cd11D6BF15Df53</a>
+              <a :href="'https://etherscan.io/address/' + poolContractAddress" target="_blank">{{poolContractAddress}}</a>
             </el-tag>
-            , 提现手续费 <el-tag type="gray"> {{ poolFee }} % </el-tag>
+            ， 提现手续费 <el-tag type="gray"> {{ poolFee }} % </el-tag>
+            ， 合约余额 <el-tag type="gray"><strong>{{(poolEthBalance / 10 ** 18).toFixed(4)}}</strong></el-tag> ether
           </p>
 
-          <div class="epoch">
-            <el-row :gutter="20">
-              <el-col :span="12">
-                当前Epoch: {{epoch.currentEpoch}}
-              </el-col>
-              <el-col :span="12" style="text-align: right;">
-                当前Epoch成本: {{ getEpochCost() }} ETH/BTE
-              </el-col>
-            </el-row>
 
-            <div class="progress" style="margin-top: 60px; margin-bottom: 100px;">
-    					<div class="progress-bar" :style="{width: epoch.percent + '%', background: 'greenyellow' }">
-                <span class="claimed" :style="{width: epoch.claimedBlocks + '%', background: 'red' }" v-if="epoch.claimedBlocks > 0">
-                {{epoch.claimedBlocks}}
-                </span>
-                <span class="mined">{{epoch.minedBlocks}}</span>
-    						<span class="percent">block {{epoch.currentBlock}}</span>
-                <span class="attempt">{{ (epoch.adjustedUnit / 10 ** 18).toFixed(4)}} ether</span>
-    					</div>
-    				</div>
+          <div class="el-row" style="margin-left: -6px; margin-right: -6px;">
+            <div class="el-col el-col-6" style="padding-left: 6px; padding-right: 6px;">
+              <div class="pool-box bg-info">
+                <span class="value">{{stats.totalUsers}}</span>
+                <div class="title">用户数</div>
+              </div>
+            </div>
+
+            <div class="el-col el-col-6" style="padding-left: 6px; padding-right: 6px;">
+              <div class="pool-box bg-warning">
+                <span class="value">{{stats.minedBlocks}}</span>
+                <div class="title">已挖块</div>
+              </div>
+            </div>
+
+            <div class="el-col el-col-6" style="padding-left: 6px; padding-right: 6px;">
+              <div class="pool-box bg-success">
+                <span class="value">{{stats.claimedBlocks}}</span>
+                <div class="title">挖到块</div>
+              </div>
+            </div>
+
+            <div class="el-col el-col-6" style="padding-left: 6px; padding-right: 6px;">
+              <div class="pool-box bg-silver">
+                <span class="value">{{stats.contractPeriod}}</span>
+                <div class="title">挖矿周期</div>
+              </div>
+            </div>
           </div>
 
           <h3>开始挖矿</h3>
@@ -106,21 +118,25 @@
             </el-col>
           </el-row>
 
-          <el-row style="margin-top: 20px;" v-loading.body="userLoading">
+          <el-row style="margin-top: 20px;">
             <el-col :span="12" style="padding-right: 6px;">
               <el-card class="box-card miner-info-card">
                   <table class="mining-info">
                     <tr>
-                      <td class="name">Epoch</td>
-                      <td>{{user.epoch}}</td>
+                      <td class="name">结束区块</td>
+                      <td>{{user.endBlock}}</td>
+                    </tr>
+                    <tr>
+                      <td class="name">贡献比例</td>
+                      <td>{{(user.proportionalContribution / 10 ** 18).toFixed(4)}} ether</td>
                     </tr>
                     <tr>
                       <td class="name">总销毁</td>
-                      <td>{{(user.totalAttempt / 10 ** 18).toFixed(4)}} ether</td>
+                      <td>{{(user.totalBurnEther / 10 ** 18).toFixed(4)}} ether</td>
                     </tr>
                     <tr>
-                      <td class="name">每次销毁</td>
-                      <td>{{(user.partialAttempt / 10 ** 18).toFixed(4)}} ether</td>
+                      <td class="name">待销毁</td>
+                      <td>{{(user.remainingBurnEther / 10 ** 18).toFixed(4)}} ether</td>
                     </tr>
                   </table>
               </el-card>
@@ -131,11 +147,15 @@
                 <table class="mining-info">
                   <tr>
                     <td class="name">BTE余额</td>
-                    <td>{{ (user.balance  / 10 ** 8).toFixed(2) }} BTE</td>
+                    <td>{{(user.bteBalance / 10 ** 8).toFixed(4)}} BTE</td>
                   </tr>
                   <tr>
-                    <td class="name">是否赎回</td>
-                    <td>{{ user.isRedeemed ? '是': '否' }}</td>
+                    <td class="name">ETH余额</td>
+                    <td>{{(user.ethBalance / 10 ** 18).toFixed(4)}} ether</td>
+                  </tr>
+                  <tr>
+                    <td class="name">销毁成本</td>
+                    <td>{{(user.bteCost / 10 ** 18).toFixed(4)}} ether</td>
                   </tr>
                 </table>
               </el-card>
@@ -152,7 +172,7 @@ import TopHeader from '../../components/TopHeader.vue'
 import Foot from '../../components/Footer.vue'
 import {default as Web3} from 'web3'
 
-window.defaultWeb3 = new Web3(new Web3.providers.HttpProvider("https://web3.token.im"))
+window.defaultWeb3 = new Web3(new Web3.providers.HttpProvider("https://mainnet.infura.io"))
 window.defaultWeb3.currentProvider.isDefaultProvider = true
 
 window.addEventListener('load', function() {
@@ -174,17 +194,22 @@ export default {
       accounts: [],
       web3Error: 'not-install',
       gasPrice: 4,
-      poolContractAddress: '0xB56EE79aa82c7b3509c50b1A03Cd11D6BF15Df53',
-      poolContractABI: [{"constant":true,"inputs":[],"name":"current_external_block","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"_epoch","type":"uint256"}],"name":"remaining_epoch_blocks","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":false,"inputs":[{"name":"_value","type":"uint256"}],"name":"pool_set_max_bet","outputs":[],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"calculate_minimum_contribution","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"pool_name","outputs":[{"name":"","type":"string"}],"payable":false,"type":"function"},{"constant":false,"inputs":[{"name":"_paused","type":"bool"}],"name":"pool_set_paused","outputs":[],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"divisible_units","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"_blockNum","type":"uint256"}],"name":"calculate_epoch","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"max_bet","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"_addr","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"_blockNumber","type":"uint256"}],"name":"bte_block_to_epoch","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"last_mined_block","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"_blockNum","type":"uint256"},{"name":"_sender","type":"address"}],"name":"checkMiningAttempt","outputs":[{"name":"","type":"bool"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"owner","outputs":[{"name":"","type":"address"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"totalAttempt","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"current_epoch","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":false,"inputs":[],"name":"mine","outputs":[],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"_who","type":"address"}],"name":"find_contribution","outputs":[{"name":"","type":"uint256"},{"name":"","type":"uint256"},{"name":"","type":"uint256"},{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"","type":"address"}],"name":"users","outputs":[{"name":"epoch","type":"uint256"},{"name":"totalAttempt","type":"uint256"},{"name":"partial_attempt","type":"uint256"},{"name":"balance","type":"uint256"},{"name":"isCreated","type":"bool"},{"name":"isRedeemed","type":"bool"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"pool_version","outputs":[{"name":"","type":"string"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"blockCreationRate","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":false,"inputs":[{"name":"_percentage","type":"uint8"}],"name":"pool_set_percentage","outputs":[],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"isPaused","outputs":[{"name":"","type":"bool"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"get_bitcoineum_contract_address","outputs":[{"name":"","type":"address"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"_baseReward","type":"uint256"},{"name":"_userContributionWei","type":"uint256"},{"name":"_totalCommittedWei","type":"uint256"}],"name":"calculate_proportional_reward","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":false,"inputs":[],"name":"redeem","outputs":[],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"_epoch","type":"uint256"}],"name":"get_epoch_record","outputs":[{"name":"","type":"uint256"},{"name":"","type":"uint256"},{"name":"","type":"uint256"},{"name":"","type":"uint256"},{"name":"","type":"uint256"},{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"","type":"uint256"}],"name":"epochs","outputs":[{"name":"minedBlocks","type":"uint256"},{"name":"claimedBlocks","type":"uint256"},{"name":"totalAttempt","type":"uint256"},{"name":"totalClaimed","type":"uint256"},{"name":"actualAttempt","type":"uint256"},{"name":"adjustedUnit","type":"uint256"},{"name":"isSealed","type":"bool"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"contract_period","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"_blockNum","type":"uint256"}],"name":"checkWinning","outputs":[{"name":"","type":"bool"}],"payable":false,"type":"function"},{"constant":false,"inputs":[{"name":"_blockNumber","type":"uint256"},{"name":"forCreditTo","type":"address"}],"name":"claim","outputs":[{"name":"","type":"bool"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"pool_percentage","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"max_pool_percentage","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":false,"inputs":[{"name":"newOwner","type":"address"}],"name":"transferOwnership","outputs":[],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"_externalBlockNum","type":"uint256"}],"name":"external_to_internal_block_number","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"inputs":[],"payable":false,"type":"constructor"},{"payable":true,"type":"fallback"},{"anonymous":false,"inputs":[{"indexed":false,"name":"_info","type":"string"},{"indexed":false,"name":"_extra","type":"uint256"}],"name":"LogEvent","type":"event"}],
+      poolContracts: {
+        sharkpool1: {
+          poolContractAddress: "0x2918DAF5b7c6Cd43E3C9Fce08b3Bde11B09A15B5",
+          poolName: "SharkPool-1",
+        },
+        sharkpool2: {
+          poolContractAddress: "0x6cD239a7717c1639214880e53f38F47C99d6cFFC",
+          poolName: "SharkPool-2"
+        },
+      },
+      poolId: 'sharkpool1',
+      poolName:"SharkPool",
+      poolContractAddress: "",
+      poolContractABI:[{"constant":true,"inputs":[],"name":"current_external_block","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"claimed_blocks","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"slots_used","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"calculate_minimum_contribution","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"pool_name","outputs":[{"name":"","type":"string"}],"payable":false,"type":"function"},{"constant":false,"inputs":[{"name":"_paused","type":"bool"}],"name":"pool_set_paused","outputs":[],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"","type":"uint256"}],"name":"attempts","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"get_total_attempt","outputs":[{"name":"","type":"uint256"},{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"available_slots","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"divisible_units","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"allocated_slots","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"_blockNum","type":"uint256"},{"name":"_sender","type":"address"}],"name":"checkMiningAttempt","outputs":[{"name":"","type":"bool"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"owner","outputs":[{"name":"","type":"address"}],"payable":false,"type":"function"},{"constant":false,"inputs":[],"name":"mine","outputs":[],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"_who","type":"address"}],"name":"find_contribution","outputs":[{"name":"","type":"uint256"},{"name":"","type":"uint256"},{"name":"","type":"uint256"},{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"","type":"address"}],"name":"users","outputs":[{"name":"end_block","type":"uint256"},{"name":"proportional_contribution","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"blockCreationRate","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":false,"inputs":[{"name":"_percentage","type":"uint8"}],"name":"pool_set_percentage","outputs":[],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"mined_blocks","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"max_users","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"isPaused","outputs":[{"name":"","type":"bool"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"get_bitcoineum_contract_address","outputs":[{"name":"","type":"address"}],"payable":false,"type":"function"},{"constant":false,"inputs":[],"name":"redeem","outputs":[],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"contract_period","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"_blockNum","type":"uint256"}],"name":"checkWinning","outputs":[{"name":"","type":"bool"}],"payable":false,"type":"function"},{"constant":false,"inputs":[{"name":"_blockNumber","type":"uint256"},{"name":"forCreditTo","type":"address"}],"name":"claim","outputs":[{"name":"","type":"bool"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"pool_percentage","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"total_users","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"","type":"uint256"}],"name":"active_users","outputs":[{"name":"","type":"address"}],"payable":false,"type":"function"},{"constant":false,"inputs":[{"name":"newOwner","type":"address"}],"name":"transferOwnership","outputs":[],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"_externalBlockNum","type":"uint256"}],"name":"external_to_internal_block_number","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"inputs":[],"payable":false,"type":"constructor"},{"payable":true,"type":"fallback"},{"anonymous":false,"inputs":[{"indexed":false,"name":"_info","type":"string"},{"indexed":false,"name":"_data","type":"uint256"}],"name":"LogEvent","type":"event"}],
       bteContractAddress: '0x73dD069c299A5d691E9836243BcaeC9c8C1D8734',
       bteContractABI: [{"constant":true,"inputs":[],"name":"current_external_block","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"maximumSupply","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"name","outputs":[{"name":"","type":"string"}],"payable":false,"type":"function"},{"constant":false,"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"}],"name":"approve","outputs":[],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"totalWeiCommitted","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"_totalBlocksMined","type":"uint256"}],"name":"calculate_base_mining_reward","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"_blockNum","type":"uint256"}],"name":"getBlockData","outputs":[{"name":"","type":"uint256"},{"name":"","type":"uint256"},{"name":"","type":"uint256"},{"name":"","type":"uint256"},{"name":"","type":"uint256"},{"name":"","type":"bool"},{"name":"","type":"address"},{"name":"","type":"bool"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"lastDifficultyAdjustmentEthereumBlock","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"minimumDifficultyThresholdWei","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transferFrom","outputs":[],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"_totalWeiCommitted","type":"uint256"},{"name":"_totalWeiExpected","type":"uint256"},{"name":"_minimumDifficultyThresholdWei","type":"uint256"},{"name":"_difficultyScaleMultiplierLimit","type":"uint256"}],"name":"calculate_next_expected_wei","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"INITIAL_SUPPLY","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"MAX_SUPPLY","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"_blockNum","type":"uint256"},{"name":"_externalblock","type":"uint256"}],"name":"checkBlockMature","outputs":[{"name":"","type":"bool"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"_blockNum","type":"uint256"}],"name":"targetBlockNumber","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"totalBlocksMined","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"difficulty","type":"uint256"},{"name":"offset","type":"uint256"}],"name":"calculate_range_attempt","outputs":[{"name":"","type":"uint256"},{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"divisible_units","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"checkMiningActive","outputs":[{"name":"","type":"bool"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"_blockNum","type":"uint256"}],"name":"resolve_block_hash","outputs":[{"name":"","type":"bytes32"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"_totalBlocksMined","type":"uint256"},{"name":"_sender","type":"address"},{"name":"_blockNumber","type":"uint256"}],"name":"calculate_reward","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"burnAddress","outputs":[{"name":"","type":"address"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"","type":"uint256"}],"name":"blockData","outputs":[{"name":"targetDifficultyWei","type":"uint256"},{"name":"blockNumber","type":"uint256"},{"name":"totalMiningWei","type":"uint256"},{"name":"totalMiningAttempts","type":"uint256"},{"name":"currentAttemptOffset","type":"uint256"},{"name":"payed","type":"bool"},{"name":"payee","type":"address"},{"name":"isCreated","type":"bool"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"getContractState","outputs":[{"name":"","type":"uint256"},{"name":"","type":"uint256"},{"name":"","type":"uint256"},{"name":"","type":"uint256"},{"name":"","type":"uint256"},{"name":"","type":"uint256"},{"name":"","type":"uint256"},{"name":"","type":"uint256"},{"name":"","type":"uint256"},{"name":"","type":"uint256"},{"name":"","type":"uint256"},{"name":"","type":"uint256"},{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"initial_reward","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"_blockNum","type":"uint256"},{"name":"_sender","type":"address"}],"name":"checkMiningAttempt","outputs":[{"name":"","type":"bool"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"targetDifficultyWei","type":"uint256"},{"name":"totalMiningWei","type":"uint256"},{"name":"value","type":"uint256"}],"name":"calculate_difficulty_attempt","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"symbol","outputs":[{"name":"","type":"string"}],"payable":false,"type":"function"},{"constant":false,"inputs":[],"name":"mine","outputs":[{"name":"","type":"bool"}],"payable":true,"type":"function"},{"constant":true,"inputs":[{"name":"_blockNum","type":"uint256"},{"name":"_who","type":"address"}],"name":"getMiningAttempt","outputs":[{"name":"","type":"uint256"},{"name":"","type":"uint256"},{"name":"","type":"bool"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"","type":"uint256"},{"name":"","type":"address"}],"name":"miningAttempts","outputs":[{"name":"projectedOffset","type":"uint256"},{"name":"value","type":"uint256"},{"name":"isCreated","type":"bool"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"difficultyScaleMultiplierLimit","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"blockCreationRate","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"currentDifficultyWei","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"_baseReward","type":"uint256"},{"name":"_userContributionWei","type":"uint256"},{"name":"_totalCommittedWei","type":"uint256"}],"name":"calculate_proportional_reward","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"_blockNum","type":"uint256"},{"name":"_externalblock","type":"uint256"}],"name":"checkRedemptionWindow","outputs":[{"name":"","type":"bool"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"totalWeiExpected","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"get_internal_block_number","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"},{"name":"_spender","type":"address"}],"name":"allowance","outputs":[{"name":"remaining","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"_blockNum","type":"uint256"}],"name":"checkWinning","outputs":[{"name":"","type":"bool"}],"payable":false,"type":"function"},{"constant":false,"inputs":[{"name":"_blockNumber","type":"uint256"},{"name":"forCreditTo","type":"address"}],"name":"claim","outputs":[{"name":"","type":"bool"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"difficultyAdjustmentPeriod","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":false,"inputs":[{"name":"to","type":"address"},{"name":"value","type":"uint256"}],"name":"transmute","outputs":[{"name":"","type":"bool"},{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"_blockNum","type":"uint256"}],"name":"isBlockRedeemed","outputs":[{"name":"","type":"bool"}],"payable":false,"type":"function"},{"constant":true,"inputs":[{"name":"_externalBlockNum","type":"uint256"}],"name":"external_to_internal_block_number","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"rewardAdjustmentPeriod","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"inputs":[],"payable":false,"type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"name":"who","type":"address"},{"indexed":false,"name":"baseContract","type":"address"},{"indexed":false,"name":"transmutedContract","type":"address"},{"indexed":false,"name":"sourceQuantity","type":"uint256"},{"indexed":false,"name":"destQuantity","type":"uint256"}],"name":"Transmuted","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"_from","type":"address"},{"indexed":false,"name":"_value","type":"uint256"},{"indexed":true,"name":"_blockNumber","type":"uint256"},{"indexed":false,"name":"_totalMinedWei","type":"uint256"},{"indexed":false,"name":"_targetDifficultyWei","type":"uint256"}],"name":"MiningAttemptEvent","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"name":"_info","type":"string"}],"name":"LogEvent","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"_from","type":"address"},{"indexed":true,"name":"_forCreditTo","type":"address"},{"indexed":false,"name":"_reward","type":"uint256"},{"indexed":true,"name":"_blockNumber","type":"uint256"}],"name":"BlockClaimedEvent","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"owner","type":"address"},{"indexed":true,"name":"spender","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Approval","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"from","type":"address"},{"indexed":true,"name":"to","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Transfer","type":"event"}],
-      epoch: {
-        currentEpoch: 0, minedBlocks: 0, claimedBlocks:0, totalAttempt: 0,
-        totalClaimed: 0, actualAttempt: 0, adjustedUnit: 0, isSealed: false,
-        percent: 0,
-        currentBlock: 0
-      },
-      lastMinedBlock: 0,
       burnEther: 0,
       selectedAccount: '',
       miningButtonDisabled: false,
@@ -194,10 +219,30 @@ export default {
       redeemActionType: 'default',
       searchUserAddress: '',
       user: {
-        epoch:0 , totalAttempt: 0, partialAttempt: 0, balance:0 , isCreated: false, isRedeemed: false
+        endBlock: 0,
+        bteBalance: 0,
+        ethBalance: 0,
+        proportionalContribution: 0,
+        totalBurnEther: 0,
+        remainingBurnEther: 0,
+        bteCost: 0
       },
       userLoading: false,
-      poolFee: 0
+      poolFee: 0,
+      stats: {
+        minedBlocks: 0,
+        claimedBlocks: 0,
+        totalUsers: 0,
+        contractPeriod: 0
+      },
+      poolEthBalance: 0
+    }
+  },
+  watch: {
+    '$route' (to, from) {
+      this.poolId = to.params.pool
+      this.$message.info('正在切换至矿池' + this.poolContracts[this.poolId].poolName)
+      this.loadPool()
     }
   },
   computed: {
@@ -213,7 +258,7 @@ export default {
       console.log(window.web3)
       if (window.web3) {
         clearInterval(t)
-        self.loadData()
+        self.loadPool()
       }
     }, 1000)
   },
@@ -229,11 +274,40 @@ export default {
     getBteInstance() {
       return window.defaultWeb3.eth.contract(this.bteContractABI).at(this.bteContractAddress)
     },
-    loadData () {
+    resetPool() {
+      this.accounts = []
+      this.selectedAccount = ''
+      this.user = {
+        endBlock: 0,
+        bteBalance: 0,
+        ethBalance: 0,
+        proportionalContribution: 0,
+        totalBurnEther: 0,
+        remainingBurnEther: 0,
+        bteCost: 0
+      }
+      this.poolFee =  0
+      this.stats = {
+        minedBlocks: 0,
+        claimedBlocks: 0,
+        totalUsers: 0,
+        contractPeriod: 0
+      }
+      this.poolEthBalance = 0
+    },
+    loadPool (pool) {
       var self = this
+      this.resetPool()
+      //set pool contract
+      console.log(this.poolId)
+      self.poolContractAddress = self.poolContracts[this.poolId].poolContractAddress
+      self.poolName = self.poolContracts[this.poolId].poolName
+
       var poolInstance = this.getPoolInstance()
       var defaultPoolInstance = this.getDefaultPoolInstance()
       var bteInstance = this.getBteInstance()
+
+      console.log(defaultPoolInstance)
 
       if (!window.web3.currentProvider.isDefaultProvider) {
         this.web3Error = ''
@@ -259,99 +333,98 @@ export default {
         this.web3Error = 'not-install'
       }
 
-      // get epoch info
-      defaultPoolInstance.current_epoch((err, epoch_number) => {
-        var currentEpoch = epoch_number.toNumber()
-        defaultPoolInstance.epochs(currentEpoch, (err, epoch) => {
-          var remainingEpochBlocks = defaultPoolInstance.remaining_epoch_blocks.call(currentEpoch).toNumber()
-          var currentBlock = 100 - remainingEpochBlocks
-          self.epoch = {
-            currentEpoch: currentEpoch,
-            minedBlocks: epoch[0].toNumber(),
-            claimedBlocks: epoch[1].toNumber(),
-            totalAttempt: epoch[2].toNumber(),
-            totalClaimed: epoch[3].toNumber(),
-            actualAttempt: epoch[4].toNumber(),
-            adjustedUnit: epoch[5].toNumber(),
-            isSealed: epoch[6],
-            percent: currentBlock,
-            currentBlock: currentBlock,
-            remainingBlocks: remainingEpochBlocks
-          }
-        })
-      })
-
       //pool fee
       defaultPoolInstance.pool_percentage((err, pool_percentage) => {
+        console.log(arguments)
         self.poolFee = pool_percentage.toNumber()
       })
 
-      this.searchUserAddress = window.STORAGE.getItem('searchUserAddress')
+      defaultPoolInstance.slots_used((err, slots_used) => {
+        self.stats.totalUsers = slots_used.toNumber()
+      })
+
+      defaultPoolInstance.mined_blocks((err, mined_blocks) => {
+        self.stats.minedBlocks = mined_blocks.toNumber()
+      })
+
+      defaultPoolInstance.claimed_blocks((err, claimed_blocks) => {
+        self.stats.claimedBlocks = claimed_blocks.toNumber()
+      })
+
+      defaultPoolInstance.contract_period((err, contract_period) => {
+        self.stats.contractPeriod = contract_period.toNumber()
+      })
+
+      window.defaultWeb3.eth.getBalance(this.poolContractAddress, (err, balance) => {
+        self.poolEthBalance = balance.toNumber()
+      })
+
+      this.searchUserAddress = window.STORAGE.getItem('searchUserAddress_' + this.poolId)
 
       if (this.searchUserAddress) {
         this.handleSearchUser()
       }
     },
-    getEpochCost() {
-      if (this.epoch.totalAttempt <= 0) {
-        return 0
-      }
-      return (this.epoch.totalClaimed / this.epoch.totalAttempt/ 10 ** 18).toFixed(4)
-    },
     startMining() {
       var self = this
-      if (this.burnEther <= 0 || this.burnEther > 1000) {
+      if (this.burnEther < 0.01 || this.burnEther > 1000) {
         this.$message({
-          message: '销毁的ether数量要大于0, 小于1000ether',
+          message: '销毁的ether数量要大于0.01, 小于1000ether',
           type: 'warning'
         })
         return
       }
 
-      var defaultPoolInstance = this.getDefaultPoolInstance()
-      var currentEpoch = defaultPoolInstance.current_epoch()
-
-      var user = defaultPoolInstance.users.call(this.selectedAccount)
-
-      // check user epoch
-      if (user[0].toNumber() == currentEpoch) {
-        this.$message({
-          message: '当前epoch已经在挖，每个epoch只能挖一次',
-          type: 'danger'
-        })
+      if (!this.selectedAccount) {
+        this.$message.error('请先选择账户')
+        this.redeemButtonDisabled = false
         return
       }
 
-      var remainingEpochBlocks = defaultPoolInstance.remaining_epoch_blocks.call(currentEpoch)
-      console.log("current epoch:", currentEpoch)
-      console.log("remaining epoch blocks:", remainingEpochBlocks)
-      var content = '当前epoch：' + currentEpoch + '， 剩余blocks：' + remainingEpochBlocks +
-        '，共销毁：' + this.burnEther  + ' ether， 每份销毁： ' + (this.burnEther / remainingEpochBlocks).toFixed(4) + ' ether'
+      var defaultPoolInstance = this.getDefaultPoolInstance()
 
       var transObj = {
         to: this.poolContractAddress,
         gasPrice: web3.toWei(this.gasPrice, 'gwei'),
-        gas: 200000,
-        value: web3.toWei(this.burnEther, 'ether')
+        gas: 150000,
+        value: web3.toWei(this.burnEther, 'ether'),
+        from: this.selectedAccount
       }
 
-      if (this.selectedAccount) {
-        transObj.from = this.selectedAccount
-      }
+      this.miningButtonDisabled = true
 
+      var contribution = defaultPoolInstance.find_contribution(this.searchUserAddress)
+      var remainingEther = web3.fromWei(contribution[3].toNumber(), 'ether')
+      var totalBurnEther = parseFloat(this.burnEther) + parseFloat(remainingEther)
+      var content = '本次销毁：' + this.burnEther  + ' ether，上次剩余：' + remainingEther +' ether, 共销毁：' + totalBurnEther + ' ether， 预计每份销毁： ' + (totalBurnEther / 100).toFixed(4) + ' ether'
+      var transactionHash = '0x565ec265e330918b7a2bb0d9f49eb9ab05327910bf87c3234005aec2fc297ff3'
+      const h = this.$createElement;
       this.$confirm(content, 'Confirmation', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
         console.log(transObj)
-        self.miningButtonDisabled = true
-        window.web3.eth.sendTransaction(transObj, (err) => {
+        window.web3.eth.sendTransaction(transObj, (err, transactionHash) => {
           console.log(arguments)
+          if (err) {
+            this.$message.error('交易失败：' + err)
+          } else {
+              this.$alert(h('p', null,[h('p', null, '交易成功等待网络确认， 交易hash：'), h('br'), h('a', {attrs: {href: 'https://etherscan.io/tx/' + transactionHash, target: '_blank'}}, transactionHash.substr(0, 15) + '...' + transactionHash.substr(-6))]), '交易成功', {
+                confirmButtonText: '确定',
+                callback: action => {
+
+                }
+              });
+
+              self.searchUserAddress = self.selectedAccount
+              self.handleSearchUser()
+          }
           self.miningButtonDisabled = false
         })
       }).catch(() => {
           console.log("cancel mining")
+          self.miningButtonDisabled = false
       })
     },
     selectMiningAction (action) {
@@ -374,22 +447,6 @@ export default {
         return
       }
 
-      var currentEpoch = defaultPoolInstance.current_epoch()
-      var user = defaultPoolInstance.users.call(this.selectedAccount)
-
-      // check user epoch
-      if (user[0].toNumber() >= currentEpoch) {
-        this.$message.error('现在还不能赎回')
-        this.redeemButtonDisabled = false
-        return
-      }
-      //check isRedeem
-      if (user[5]) {
-        this.$message.error('当前epoch已经赎回过了')
-        this.redeemButtonDisabled = false
-        return
-      }
-
       // check balance
       var userBteBalance = defaultPoolInstance.balanceOf.call(this.selectedAccount).toNumber()
       if (userBteBalance <= 0) {
@@ -405,9 +462,14 @@ export default {
         gas: 120000,
         value: 0,
 				gasPrice: web3.toWei(this.gasPrice, 'gwei')
-      }, (error) => {
-        console.log("redeem error:", error)
-        self.redeemButtonDisabled = false
+      }, (error, transitionHash) => {
+        console.log(arguments)
+        if (err) {
+          this.$message.error('赎回失败：' + err)
+        } else {
+          this.$message.info('赎回成功')
+        }
+        this.redeemButtonDisabled = false
       })
     },
     handleSearchUser(ev) {
@@ -420,24 +482,33 @@ export default {
         })
         return
       }
-      window.STORAGE.setItem('searchUserAddress', this.searchUserAddress)
+      window.STORAGE.setItem('searchUserAddress_' + this.poolId, this.searchUserAddress)
       var poolInstance = this.getDefaultPoolInstance()
       this.userLoading = true
-      poolInstance.users(this.searchUserAddress, (err, user) => {
-          self.user = {
-            epoch: user[0].toNumber() ,
-            totalAttempt: user[1].toNumber(),
-            partialAttempt: user[2].toNumber(),
-            balance: user[3].toNumber(),
-            isCreated: false, isRedeemed: false
-          }
 
+      poolInstance.find_contribution(this.searchUserAddress, (err, contribution) => {
+          self.user.endBlock = contribution[0].toNumber()
+          self.user.proportionalContribution = contribution[1].toNumber()
+          self.user.totalBurnEther = contribution[2].toNumber()
+          self.user.remainingBurnEther = contribution[3].toNumber()
           self.userLoading = false
       })
 
-      poolInstance.balanceOf.call(this.searchUserAddress, (err, balance) => {
-        self.user.balance = balance.toNumber()
+      window.defaultWeb3.eth.getBalance(this.searchUserAddress, (err, balance) => {
+        self.user.ethBalance = balance.toNumber()
+        self.user.bteCost = self.getBteCost()
       })
+
+      poolInstance.balanceOf.call(this.searchUserAddress, (err, balance) => {
+        self.user.bteBalance = balance.toNumber()
+        self.user.bteCost = self.getBteCost()
+      })
+    },
+    getBteCost() {
+      if (this.user.bteBalance > 0) {
+        return (this.user.ethBalance / this.user.bteBalance / 10 ** 18).toFixed()
+      }
+      return 0
     }
   }
 }
