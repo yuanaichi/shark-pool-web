@@ -12,4 +12,5 @@ build:
 	rm -rf dist && \
 	git add . && \
 	git commit -m "build" && \
-	git push origin gh-pages
+	git push origin gh-pages && \
+	git checkout master

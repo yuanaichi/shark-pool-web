@@ -117,18 +117,21 @@
               </el-input>
             </el-col>
           </el-row>
-
+          <p v-if="searchUserAddress">
+            <a :href="'https://etherscan.io/address/' + searchUserAddress">在区块浏览器中查看</a>
+          </p>
           <el-row style="margin-top: 20px;" v-loading.body="userLoading">
             <el-col :span="12" style="padding-right: 6px;">
               <el-card class="box-card miner-info-card">
                   <table class="mining-info">
                     <tr>
-                      <td class="name">结束区块</td>
-                      <td>{{user.endBlock}}（当前第{{stats.minedBlocks}}块）</td>
+                      <td class="name">挖矿进度</td>
+                      <td>{{stats.minedBlocks}} / {{user.endBlock}}（{{miningProcess()}}）</td>
                     </tr>
                     <tr>
                       <td class="name">贡献比例</td>
-                      <td>{{(user.proportionalContribution / 10 ** 18).toFixed(4)}} ether</td>
+                      <td>
+                        {{(user.proportionalContribution / 10 ** 18).toFixed(4)}} ether</td>
                     </tr>
                     <tr>
                       <td class="name">总销毁</td>
@@ -524,6 +527,17 @@ export default {
         return ((this.user.totalBurnEther -  this.user.remainingBurnEther) / this.user.unReedemBte / 10 ** 10).toFixed(4)
       }
       return 0
+    },
+    miningProcess () {
+      if (this.user.endBlock == 0) {
+        return '没有挖矿'
+      }
+
+      if (this.user.endBlock > this.stats.minedBlocks) {
+        return '正在挖矿'
+      } else {
+        return '挖矿结束'
+      }
     }
   }
 }
