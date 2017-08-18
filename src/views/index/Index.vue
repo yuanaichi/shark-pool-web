@@ -124,7 +124,7 @@
                   <table class="mining-info">
                     <tr>
                       <td class="name">结束区块</td>
-                      <td>{{user.endBlock}}（当前第{{stats.minedBlocks}}块）</td>
+                      <td>{{user.endBlock}}</td>
                     </tr>
                     <tr>
                       <td class="name">贡献比例</td>
