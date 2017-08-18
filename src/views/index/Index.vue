@@ -118,7 +118,7 @@
             </el-col>
           </el-row>
 
-          <el-row style="margin-top: 20px;">
+          <el-row style="margin-top: 20px;" v-loading.body="userLoading">
             <el-col :span="12" style="padding-right: 6px;">
               <el-card class="box-card miner-info-card">
                   <table class="mining-info">
@@ -146,6 +146,10 @@
               <el-card class="box-card">
                 <table class="mining-info">
                   <tr>
+                    <td class="name">待赎回BTE</td>
+                    <td>{{(user.unReedemBte / 10 ** 8).toFixed(4)}} BTE</td>
+                  </tr>
+                  <tr>
                     <td class="name">BTE余额</td>
                     <td>{{(user.bteBalance / 10 ** 8).toFixed(4)}} BTE</td>
                   </tr>
@@ -155,7 +159,7 @@
                   </tr>
                   <tr>
                     <td class="name">销毁成本</td>
-                    <td>{{(user.bteCost / 10 ** 18).toFixed(4)}} ether</td>
+                    <td>{{user.bteCost}} ether</td>
                   </tr>
                 </table>
               </el-card>
@@ -225,7 +229,8 @@ export default {
         proportionalContribution: 0,
         totalBurnEther: 0,
         remainingBurnEther: 0,
-        bteCost: 0
+        bteCost: 0,
+        unReedemBte: 0
       },
       userLoading: false,
       poolFee: 0,
@@ -255,7 +260,6 @@ export default {
   mounted () {
     var self = this
     var t = setInterval(function() {
-      console.log(window.web3)
       if (window.web3) {
         clearInterval(t)
         self.loadPool()
@@ -284,7 +288,8 @@ export default {
         proportionalContribution: 0,
         totalBurnEther: 0,
         remainingBurnEther: 0,
-        bteCost: 0
+        bteCost: 0,
+        unReedemBte: 0
       }
       this.poolFee =  0
       this.stats = {
@@ -299,15 +304,12 @@ export default {
       var self = this
       this.resetPool()
       //set pool contract
-      console.log(this.poolId)
       self.poolContractAddress = self.poolContracts[this.poolId].poolContractAddress
       self.poolName = self.poolContracts[this.poolId].poolName
 
       var poolInstance = this.getPoolInstance()
       var defaultPoolInstance = this.getDefaultPoolInstance()
       var bteInstance = this.getBteInstance()
-
-      console.log(defaultPoolInstance)
 
       if (!window.web3.currentProvider.isDefaultProvider) {
         this.web3Error = ''
@@ -335,7 +337,6 @@ export default {
 
       //pool fee
       defaultPoolInstance.pool_percentage((err, pool_percentage) => {
-        console.log(arguments)
         self.poolFee = pool_percentage.toNumber()
       })
 
@@ -404,9 +405,7 @@ export default {
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
-        console.log(transObj)
         window.web3.eth.sendTransaction(transObj, (err, transactionHash) => {
-          console.log(arguments)
           if (err) {
             this.$message.error('交易失败：' + err)
           } else {
@@ -416,14 +415,10 @@ export default {
 
                 }
               });
-
-              self.searchUserAddress = self.selectedAccount
-              self.handleSearchUser()
           }
           self.miningButtonDisabled = false
         })
       }).catch(() => {
-          console.log("cancel mining")
           self.miningButtonDisabled = false
       })
     },
@@ -456,20 +451,34 @@ export default {
       }
 
       var poolInstance = this.getPoolInstance()
+      var content = '赎回 ' + (userBteBalance / 10 ** 8).toFixed(2) + ' BTE'
+      const h = this.$createElement;
 
-      poolInstance.redeem({
-        from: this.selectedAccount,
-        gas: 120000,
-        value: 0,
-				gasPrice: web3.toWei(this.gasPrice, 'gwei')
-      }, (error, transitionHash) => {
-        console.log(arguments)
-        if (err) {
-          this.$message.error('赎回失败：' + err)
-        } else {
-          this.$message.info('赎回成功')
-        }
-        this.redeemButtonDisabled = false
+      this.$confirm(content, 'Confirmation', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        poolInstance.redeem({
+          from: this.selectedAccount,
+          gas: 120000,
+          value: 0,
+  				gasPrice: web3.toWei(this.gasPrice, 'gwei')
+        }, (err, transactionHash) => {
+          if (err) {
+            this.$message.error('赎回失败：' + err)
+          } else {
+            this.$alert(h('p', null,[h('p', null, '赎回成功等待网络确认， 交易hash：'), h('br'), h('a', {attrs: {href: 'https://etherscan.io/tx/' + transactionHash, target: '_blank'}}, transactionHash.substr(0, 15) + '...' + transactionHash.substr(-6))]), '交易成功', {
+              confirmButtonText: '确定',
+              callback: action => {
+              }
+            });
+          }
+          self.redeemButtonDisabled = false
+        })
+
+      }).catch(() => {
+        self.redeemButtonDisabled = false
       })
     },
     handleSearchUser(ev) {
@@ -491,6 +500,8 @@ export default {
           self.user.proportionalContribution = contribution[1].toNumber()
           self.user.totalBurnEther = contribution[2].toNumber()
           self.user.remainingBurnEther = contribution[3].toNumber()
+
+          self.user.bteCost = self.getBteCost()
           self.userLoading = false
       })
 
@@ -499,14 +510,18 @@ export default {
         self.user.bteCost = self.getBteCost()
       })
 
-      poolInstance.balanceOf.call(this.searchUserAddress, (err, balance) => {
-        self.user.bteBalance = balance.toNumber()
+      poolInstance.balanceOf(this.searchUserAddress, (err, balance) => {
+        self.user.unReedemBte = balance.toNumber()
         self.user.bteCost = self.getBteCost()
+      })
+
+      this.getBteInstance().balanceOf(this.searchUserAddress, (err, balance) => {
+        self.user.bteBalance = balance.toNumber()
       })
     },
     getBteCost() {
-      if (this.user.bteBalance > 0) {
-        return (this.user.ethBalance / this.user.bteBalance / 10 ** 18).toFixed()
+      if (this.user.unReedemBte > 0) {
+        return ((this.user.totalBurnEther -  this.user.remainingBurnEther) / this.user.unReedemBte / 10 ** 10).toFixed(4)
       }
       return 0
     }
