@@ -134,7 +134,7 @@
                         {{(user.proportionalContribution / 10 ** 18).toFixed(4)}} ether</td>
                     </tr>
                     <tr>
-                      <td class="name">总销毁</td>
+                      <td class="name">总投入</td>
                       <td>{{(user.totalBurnEther / 10 ** 18).toFixed(4)}} ether</td>
                     </tr>
                     <tr>
